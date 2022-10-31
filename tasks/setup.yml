@@ -1,0 +1,49 @@
+---
+#info: Install fastpkg offline via Ansible host
+- name: Repack fastpkg on Ansible host
+  connection: local
+  shell: |
+    cd /tmp || exit 1
+    REPACK=$(dpkg-repack fastpkg 2>/dev/stdout 1>/dev/null || true)
+    if [ -z "$REPACK" ]; then
+        : # ok
+    elif echo "$REPACK" | grep -q "Identifier removed"; then
+        : # ok
+    else
+        echo "dpkg-repack fastpkg: $REPACK"
+        exit 1
+    fi
+    PACKAGE=$(find . -name "fastpkg_*.deb" 2>/dev/null)
+    if [ -n "$PACKAGE" ]; then
+        mv -f "$PACKAGE" fastpkg.deb || exit 1
+    else
+        echo "file /tmp/fastpkg.deb not found"
+        exit 1
+    fi
+  register: shell_fastpkg_install
+  run_once: true
+  become: false
+  changed_when: false
+  failed_when: false
+
+- debug:
+    msg: |
+      OUT: {{ shell_fastpkg_install.stdout }}
+      ERR: {{ shell_fastpkg_install.stderr }}
+  when: servermonkey_debug and shell_fastpkg_install.stdout != "" or shell_fastpkg_install.stderr != ""
+
+- name: Fail dpkg-repack
+  fail:
+    msg: "dpkg-repack failed"
+  failed_when: shell_fastpkg_install.stdout != "" or shell_fastpkg_install.stderr != ""
+
+- name: Copy fastpkg
+  copy:
+    src: /tmp/fastpkg.deb
+    dest: /tmp/fastpkg.deb
+    mode: 0600
+  changed_when: false
+
+- name: Install fastpkg
+  apt:
+    deb: /tmp/fastpkg.deb

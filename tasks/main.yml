@@ -1,0 +1,38 @@
+---
+- name: Setup fastpkg via package manager
+  package:
+    update_cache: yes
+    name: fastpkg
+  when: fpkg_offline == false
+
+- name: Setup fastpkg (offline)
+  include_tasks: setup.yml
+  when: fpkg_offline
+
+- name: Init fastpkg
+  shell: 'fastpkg -b init'
+  register: fpkg_shell_init
+  failed_when: fpkg_shell_init.rc != 0 or fpkg_shell_init.stdout != ""
+  changed_when: false
+
+- name: Prepare offline installation
+  include_tasks: prepare_offline.yml
+  when: fpkg_offline and fpkg_package != ""
+
+- name: Enlist new repo
+  shell: "fastpkg -bq -r '{{ fpkg_repo }}' enlist"
+  register: fpkg_shell_enlist
+  failed_when: fpkg_shell_enlist.rc != 0 or fpkg_shell_enlist.stdout != ""
+  changed_when: false
+  when: fpkg_enlist and fpkg_repo != ""
+
+- name: Update repo
+  shell: 'fastpkg -bq update'
+  register: fpkg_shell_update
+  failed_when: fpkg_shell_update.rc != 0 or fpkg_shell_update.stdout != ""
+  changed_when: false
+  when: fpkg_offline == false or fpkg_update
+
+- name: Install package
+  include_tasks: install.yml
+  when: fpkg_package != "" and fpkg_only_download == false

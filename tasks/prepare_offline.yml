@@ -1,0 +1,41 @@
+---
+- name: Export local cache
+  connection: local
+  shell: 'fastpkg -b -p {{ fpkg_package }} exportcache'
+  register: shell_fastpkg_export
+  failed_when:
+    'shell_fastpkg_export.rc != 0
+    or shell_fastpkg_export.stdout == ""'
+  changed_when: false
+  become: false
+
+- name: Save cache to remote
+  copy:
+    content: '{{ shell_fastpkg_export.stdout }}'
+    dest: '{{ fpkg_file_repo_cache }}'
+    mode: 0644
+  changed_when: false
+
+- name: Find packages to copy
+  connection: local
+  shell: "fastpkg -b -p {{ fpkg_package }} show -d"
+  register: shell_fastpkg_offline
+  failed_when:
+    'shell_fastpkg_offline.rc != 0
+    or shell_fastpkg_offline.stdout == ""
+    or "Download-Path is empty" in shell_fastpkg_offline.stdout_lines
+    or "Error:" in shell_fastpkg_offline.stdout_lines'
+  changed_when: false
+  become: false
+
+- debug:
+    msg: 'Copy packages: {{ shell_fastpkg_offline.stdout }}'
+  when: servermonkey_debug
+
+- name: Copy packages
+  copy:
+    src: '{{ item }}'
+    dest: '{{ fpkg_path_downloads }}'
+    mode: 0644
+  with_items: '{{ shell_fastpkg_offline.stdout_lines }}'
+  when: shell_fastpkg_offline.stdout != ""

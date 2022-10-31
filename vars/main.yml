@@ -1,0 +1,27 @@
+# you may change these
+# need to provide: fpkg_package
+
+# generic
+servermonkey_debug: false  # devs only
+
+# variables
+fpkg_package: ""
+fpkg_repo: "https://muspekaren.se/fpkg-example/"
+fpkg_enlist: false  # if true, add the variable 'fpkg_repo' to the fastpkg repo
+fpkg_offline: true  # if true, copy packages from Ansible host
+fpkg_only_download: false  # if true, only download and don't install packages
+fpkg_update: false  # if true, update the cache
+fpkg_install_dir: ""
+
+# paths and files
+fpkg_path_base: "/var/lib/fastpkg/"
+fpkg_path_downloads: '{{ fpkg_path_base }}downloads/'
+#fpkg_path_tmp: '{{ fpkg_path_base }}tmp/'
+#fpkg_path_downloads_log: '{{ fpkg_path_base }}downloads_log/'
+#fpkg_path_list_cache: '{{ fpkg_path_base }}list_cache/'
+fpkg_file_repo_cache: '{{ fpkg_path_base }}cache.csv'
+#fpkg_file_installed_pkgs: '{{ fpkg_path_base }}installed.csv'
+#fpkg_path_cfg: "/etc/fastpkg/"
+#fpkg_file_repo_list: '{{ fpkg_path_cfg }}fastpkg.list'
+#fpkg_file_cfg: '{{ fpkg_path_cfg }}config.cfg'
+#fpkg_file_pkgs: "packages.csv"
