@@ -37,13 +37,40 @@
     msg: "dpkg-repack failed"
   failed_when: shell_fastpkg_install.stdout != "" or shell_fastpkg_install.stderr != ""
 
-- name: Copy fastpkg
-  copy:
-    src: /tmp/fastpkg.deb
-    dest: /tmp/fastpkg.deb
-    mode: 0600
-  changed_when: false
+- block:
+    - name: Copy fastpkg (Debian)
+      copy:
+        src: /tmp/fastpkg.deb
+        dest: /tmp/fastpkg.deb
+        mode: 0600
+      changed_when: false
 
-- name: Install fastpkg
-  apt:
-    deb: /tmp/fastpkg.deb
+    - name: Install fastpkg (Debian)
+      apt:
+        deb: /tmp/fastpkg.deb
+  when: ansible_os_family == 'Debian'
+
+- block:
+    - name: Install fastpkg (Windows)
+      copy:
+        src: /usr/local/bin/fastpkg
+        dest: /bin/fastpkg
+        mode: 0755
+
+    - name: Make fastpkg compatible with Python 2 (Windows)
+      replace:
+        path: /bin/fastpkg
+        regexp: '#!/usr/bin/env python3'
+        replace: '#!/usr/bin/env python2'
+
+    - name: Find dtrx in fastpkg repo
+      connection: local
+      shell: fastpkg -qp fastpkg-dtrx show -d
+      register: fastpkg_setup_dtrx_path
+
+    - name: Install dtrx (Windows)
+      copy:
+        src: "{{ fastpkg_setup_dtrx_path.stdout }}"
+        dest: /bin/dtrx
+        mode: 0755
+  when: '"CYGWIN" in ansible_os_family'
