@@ -1,6 +1,6 @@
 ---
 - name: Install packages '{{ fpkg_package }}'
-  shell: 'fastpkg -bp {{ fpkg_package }} install'
+  shell: 'fastpkg -{{ fpkg_extra_args }}bp {{ fpkg_package }} install'
   register: shell_fastpkg_install
   failed_when:
     'shell_fastpkg_install.rc != 0
@@ -13,7 +13,7 @@
   when: servermonkey_debug and fpkg_install_dir == ""
 
 - name: Install packages to specific location '{{ fpkg_package }}'
-  shell: 'fastpkg -bp {{ fpkg_package }} install -i {{ fpkg_install_dir }}'
+  shell: 'fastpkg -{{ fpkg_extra_args }}bp {{ fpkg_package }} install -{{ fpkg_extra_opts }}i {{ fpkg_install_dir }}'
   register: shell_fastpkg_install_dir
   failed_when:
     'shell_fastpkg_install_dir.rc != 0

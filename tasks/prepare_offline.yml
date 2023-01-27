@@ -1,4 +1,14 @@
 ---
+- name: Set file permissions (Posix)
+  set_fact:
+    fpkg_file_mode: 0644
+  when: '"CYGWIN" not in ansible_os_family'
+
+- name: Set file permissions (Windows)
+  set_fact:
+    fpkg_file_mode: 0755
+  when: '"CYGWIN" in ansible_os_family'
+
 - name: Export local cache
   connection: local
   shell: 'fastpkg -b -p {{ fpkg_package }} exportcache'
@@ -13,8 +23,9 @@
   copy:
     content: '{{ shell_fastpkg_export.stdout }}'
     dest: '{{ fpkg_file_repo_cache }}'
-    mode: 0644
+    mode: '{{ fpkg_file_mode }}'
   changed_when: false
+  when: '"CYGWIN" in ansible_os_family'
 
 - name: Find packages to copy
   connection: local
@@ -22,7 +33,6 @@
   register: shell_fastpkg_offline
   failed_when:
     'shell_fastpkg_offline.rc != 0
-    or shell_fastpkg_offline.stdout == ""
     or "Download-Path is empty" in shell_fastpkg_offline.stdout_lines
     or "Error:" in shell_fastpkg_offline.stdout_lines'
   changed_when: false
@@ -32,10 +42,33 @@
     msg: 'Copy packages: {{ shell_fastpkg_offline.stdout }}'
   when: servermonkey_debug
 
+- block:
+    - name: Convert Windows to Posix downloads path
+      shell: cygpath -u '{{ fpkg_path_downloads }}'
+      register: fpkg_path_downloads_win
+      changed_when: false
+
+    - name: Set downloads path (Windows to Posix)
+      set_fact:
+        fpkg_path_downloads_final: "{{ fpkg_path_downloads_win.stdout }}/"
+  when:
+    '"CYGWIN" in ansible_os_family
+    and ":" in fpkg_path_downloads'
+
+- name: Set downloads path (Posix fallback)
+  set_fact:
+    fpkg_path_downloads_final: "{{ fpkg_path_downloads }}/"
+  when:
+    '":" not in fpkg_path_downloads'
+
+- debug:
+    msg: "New downloads path: {{ fpkg_path_downloads_final }}"
+  when: servermonkey_debug
+
 - name: Copy packages
   copy:
     src: '{{ item }}'
-    dest: '{{ fpkg_path_downloads }}'
-    mode: 0644
+    dest: '{{ fpkg_path_downloads_final }}'
+    mode: '{{ fpkg_file_mode }}'
   with_items: '{{ shell_fastpkg_offline.stdout_lines }}'
   when: shell_fastpkg_offline.stdout != ""
