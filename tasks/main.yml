@@ -5,9 +5,13 @@
     name: fastpkg
   when: fpkg_offline == false
 
-- name: Setup fastpkg (offline)
-  include_tasks: setup.yml
-  when: fpkg_offline
+- name: Setup fastpkg (Windows)
+  include_tasks: setup_windows.yml
+  when: 'fpkg_offline and "CYGWIN" in ansible_os_family'
+
+- name: Setup fastpkg (Debian)
+  include_tasks: setup_debian.yml
+  when: 'fpkg_offline and ansible_os_family == "Debian"'
 
 - name: Init fastpkg
   shell: 'fastpkg -b init'

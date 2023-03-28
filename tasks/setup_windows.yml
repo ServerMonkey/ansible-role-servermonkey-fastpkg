@@ -1,0 +1,30 @@
+---
+#info: Install fastpkg offline via Ansible host
+- name: Install fastpkg (Windows)
+  copy:
+    src: /usr/local/bin/fastpkg
+    dest: /bin/fastpkg
+    mode: '0755'
+  changed_when: false
+
+- name: Make compatible with Python 2 (Windows)
+  replace:
+    path: /bin/fastpkg
+    regexp: '#!/usr/bin/env python3'
+    replace: '#!/usr/bin/env python2'
+  changed_when: false
+
+- name: Find package 'fastpkg-dtrx' in fastpkg repo
+  connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  shell: fastpkg -qp fastpkg-dtrx show -d
+  register: fastpkg_setup_dtrx_path
+  changed_when: false
+
+- name: Install dtrx (Windows)
+  copy:
+    src: "{{ fastpkg_setup_dtrx_path.stdout }}"
+    dest: /bin/dtrx
+    mode: '0755'
+    force: no

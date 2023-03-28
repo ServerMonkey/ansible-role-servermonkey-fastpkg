@@ -11,6 +11,8 @@
 
 - name: Export local cache
   connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
   shell: 'fastpkg -b -p {{ fpkg_package }} exportcache'
   register: shell_fastpkg_export
   failed_when:
@@ -25,10 +27,11 @@
     dest: '{{ fpkg_file_repo_cache }}'
     mode: '{{ fpkg_file_mode }}'
   changed_when: false
-  when: '"CYGWIN" in ansible_os_family'
 
 - name: Find packages to copy
   connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
   shell: "fastpkg -b -p {{ fpkg_package }} show -d"
   register: shell_fastpkg_offline
   failed_when:

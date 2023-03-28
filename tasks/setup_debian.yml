@@ -1,0 +1,100 @@
+---
+#info: Install fastpkg offline via Ansible host
+
+# --- install fastpkg ---
+- name: Repack fastpkg on Ansible host
+  connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  shell: |
+    cd /tmp || exit 1
+    REPACK=$(fakeroot -u dpkg-repack fastpkg 2>/dev/stdout 1>/dev/null || true)
+    if [ -z "$REPACK" ]; then
+        : # ok
+    elif echo "$REPACK" | grep -q "Identifier removed"; then
+        : # ok
+    else
+        echo "dpkg-repack fastpkg: $REPACK"
+        exit 1
+    fi
+    PACKAGE=$(find . -name "fastpkg_*.deb" 2>/dev/null)
+    if [ -n "$PACKAGE" ]; then
+        mv -f "$PACKAGE" fastpkg.deb || exit 1
+    else
+        echo "file /tmp/fastpkg.deb not found"
+        exit 1
+    fi
+  register: shell_fastpkg_install
+  run_once: true
+  become: false
+  changed_when: false
+
+- debug:
+    msg: |
+      OUT: {{ shell_fastpkg_install.stdout }}
+      ERR: {{ shell_fastpkg_install.stderr }}
+  when: servermonkey_debug and shell_fastpkg_install.stdout != "" or shell_fastpkg_install.stderr != ""
+
+- name: Fail dpkg-repack
+  fail:
+    msg: "dpkg-repack failed"
+  failed_when: shell_fastpkg_install.stdout != "" or shell_fastpkg_install.stderr != ""
+
+- name: Copy fastpkg (Debian)
+  copy:
+    src: /tmp/fastpkg.deb
+    dest: /tmp/fastpkg.deb
+    mode: '0600'
+  changed_when: false
+
+- name: Install fastpkg (Debian)
+  apt:
+    deb: /tmp/fastpkg.deb
+    install_recommends: true
+
+- name: Check if dtrx is installed
+  shell: command -v dtrx
+  register: fastpkg_setup_dtrx_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install minimal dtrx
+  block:
+    - name: Install unarchivers for dtrx
+      package:
+        update_cache: yes
+        name:
+          - binutils
+          - bzip2
+          - cabextract
+          - cpio
+          - lzma
+          - p7zip-full
+          - rpm
+          - unzip
+          - xz-utils
+          - python2
+          # 'unshield' will be skipped because it is not in Debian DVD 1
+
+    - name: Find package 'fastpkg-dtrx' in fastpkg repo
+      connection: local
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      shell: fastpkg -qp fastpkg-dtrx show -d
+      register: fastpkg_setup_dtrx_path
+      changed_when: false
+
+    - name: Install dtrx (Posix)
+      copy:
+        src: "{{ fastpkg_setup_dtrx_path.stdout }}"
+        dest: /usr/local/bin/dtrx
+        mode: '0755'
+        force: no
+
+    - name: Make dtrx compatible with Python 2 (Posix)
+      replace:
+        path: /usr/local/bin/dtrx
+        regexp: '#!/usr/bin/env python'
+        replace: '#!/usr/bin/env python2'
+      changed_when: false
+  when: not fastpkg_setup_dtrx_installed.stdout

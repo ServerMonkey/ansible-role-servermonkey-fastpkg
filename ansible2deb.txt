@@ -1,1 +1,1 @@
-Depends: dpkg-repack (>=1.4), fastpkg
+Depends: dpkg-repack (>=1.4), fakeroot (>=1.25), fastpkg
