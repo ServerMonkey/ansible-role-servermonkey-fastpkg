@@ -9,7 +9,9 @@
   when: fpkg_install_dir == ""
 
 - debug:
-    msg: 'Install packages: {{ shell_fastpkg_install.stdout }}'
+    msg: |
+      '{{ shell_fastpkg_install.stdout }}'
+      'Errors: {{ shell_fastpkg_install.stderr }}'
   when: servermonkey_debug and fpkg_install_dir == ""
 
 - name: Install packages to specific location '{{ fpkg_package }}'
