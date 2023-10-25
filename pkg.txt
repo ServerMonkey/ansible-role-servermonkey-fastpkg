@@ -1,1 +1,3 @@
+Version: 0.28
 Depends: dpkg-repack (>=1.4), fakeroot (>=1.25), fastpkg
+Description: Fastpkg package manager
