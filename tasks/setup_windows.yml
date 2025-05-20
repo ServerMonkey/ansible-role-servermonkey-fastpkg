@@ -7,12 +7,19 @@
     mode: '0755'
   changed_when: false
 
+- name: Check if python3 is installed
+  shell: which python3
+  register: python3_installed
+  changed_when: false
+  failed_when: false
+
 - name: Make compatible with Python 2 (Windows)
   replace:
     path: /bin/fastpkg
     regexp: '#!/usr/bin/env python3'
     replace: '#!/usr/bin/env python2'
   changed_when: false
+  when: python3_installed.rc == 1
 
 - name: Find package 'fastpkg-dtrx' in fastpkg repo
   connection: local

@@ -71,6 +71,7 @@
 - name: Copy packages
   copy:
     src: '{{ item }}'
+    remote_src: false
     dest: '{{ fpkg_path_downloads_final }}'
     mode: '{{ fpkg_file_mode }}'
   with_items: '{{ shell_fastpkg_offline.stdout_lines }}'
